@@ -431,7 +431,8 @@ void op_help()
 		<<OI_text<<endl
 		<<OE_text<<endl
 		<<RAA_text<<endl
-		<<"help : show this message and now status"<<endl;
+		<<"help : show this message and now status"<<endl
+		<<"QED : terminate this program and make proof list of the last formula"<<endl;
 }
 
 int main()
@@ -602,7 +603,7 @@ int main()
 				success=add_A(Af);
 			}
 		}
-		else if(op=="finish")
+		else if(op=="QED")
 		{
 			break;
 		}
