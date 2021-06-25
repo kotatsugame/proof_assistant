@@ -156,7 +156,7 @@ struct gyou{
 			it++;
 			if(it!=izon.end())cout<<",";
 		}
-		cout<<" ("<<number+1<<") "<<siki->to_s()<<" ";
+		cout<<" | ("<<number+1<<") | "<<siki->to_s()<<" | ";
 		kisoku.disp();
 		cout<<endl;
 	}
@@ -418,6 +418,8 @@ const string AE_text="AE : AND-Elimination, (A"+AND+"B)"+COND+"A or (A"+AND+"B)"
 const string OI_text="OI : OR-Introduction, A"+COND+"(A"+OR+"B) or B"+COND+"(A"+OR+"B)";
 const string OE_text="OE : OR-Elimination, ((A"+OR+"B), A|-C, B|-C)"+COND+"C";
 const string RAA_text="RAA : Reductio ad Absurdum, (A|-(B"+AND+NOT+"B))"+COND+NOT+"A";
+const string del_text="del : delete the last formula [danger : DO NOT consider context]";
+const string QED_text="QED : terminate this program and make proof of the last formula";
 void op_help()
 {
 	cout<<"operation list:"<<endl
@@ -431,8 +433,9 @@ void op_help()
 		<<OI_text<<endl
 		<<OE_text<<endl
 		<<RAA_text<<endl
-		<<"help : show this message and now status"<<endl
-		<<"QED : terminate this program and make proof of the last formula"<<endl;
+		<<del_text<<endl
+		<<QED_text<<endl
+		<<"help : show this message and now status"<<endl;
 }
 
 int main()
@@ -455,12 +458,27 @@ int main()
 			cout<<endl;
 			success=true;
 		}
+		else if(op=="del")
+		{
+			cout<<del_text<<endl;
+			if(!syoumei.empty())
+			{
+				disp(syoumei.size()-1);
+				syoumei.pop_back();
+				success=true;
+			}
+		}
+		else if(op=="QED")
+		{
+			cout<<QED_text<<endl;
+			break;
+		}
 		else if(op=="A")
 		{
 			cout<<A_text<<endl;
 			cout<<"Enter any formula $ ";
 			success=add_A(input());
-			Assumption.push_back(syoumei.back().siki);
+			if(success)Assumption.push_back(syoumei.back().siki);
 		}
 		else if(op=="MPP")
 		{
@@ -602,10 +620,6 @@ int main()
 				context.push_back(make_pair(make_pair(RAA,vector<int>{(int)syoumei.size()}),make_pair(Af,ERROR)));
 				success=add_A(Af);
 			}
-		}
-		else if(op=="QED")
-		{
-			break;
 		}
 
 		if(success)
