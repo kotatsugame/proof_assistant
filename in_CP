@@ -1,0 +1,15 @@
+A
+(Q->R)
+CP
+(~Q->~P)
+(P->R)
+CP
+P
+R
+DN
+3
+1
+DN
+5
+2
+finish
