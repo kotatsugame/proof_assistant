@@ -31,5 +31,5 @@ P
 AI
 8
 10
-finish
+QED
 # Proof of (P|(Q&R)) |- ((P|Q)&(P|R))
