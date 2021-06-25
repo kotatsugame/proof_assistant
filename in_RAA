@@ -30,3 +30,4 @@ DN
 13
 2
 finish
+# Proof of ~(~P&~Q) |- (P|Q)
