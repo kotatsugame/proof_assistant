@@ -32,3 +32,4 @@ AI
 8
 10
 finish
+# Proof of (P|(Q&R)) |- ((P|Q)&(P|R))
