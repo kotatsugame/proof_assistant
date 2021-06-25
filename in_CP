@@ -13,4 +13,4 @@ DN
 5
 2
 finish
-Proof of (Q->R) |- ((~Q->~P)->(P->R))
+# Proof of (Q->R) |- ((~Q->~P)->(P->R))
