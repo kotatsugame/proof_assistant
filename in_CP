@@ -12,5 +12,5 @@ DN
 DN
 5
 2
-finish
+QED
 # Proof of (Q->R) |- ((~Q->~P)->(P->R))
