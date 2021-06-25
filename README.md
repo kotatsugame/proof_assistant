@@ -63,7 +63,7 @@ help : show this message and now status
 
 $ A
 A : Assumption
-Enter any formula $ P->Q                (P->Q)と括弧をつけなければならない
+Enter any formula $ P->Q                # (P->Q)と括弧をつけなければならない
 Invalid
 
 $ A
@@ -78,9 +78,9 @@ Enter formula A $ ~Q
 Enter formula B $ ~P
 Let's proof ~P
 add : 2 | (2) | ~Q | A
-add : 1,2 | (3) | ~P | (1)(2)MTT        自動で証明が進んだ
-add : 1 | (4) | (~Q->~P) | (2)(3)CP     自動で証明が進んだ
-add : 1,2 | (5) | ~P | (4)(2)MPP        自動で証明が進みすぎた
+add : 1,2 | (3) | ~P | (1)(2)MTT        # 自動で証明が進んだ
+add : 1 | (4) | (~Q->~P) | (2)(3)CP     # 自動で証明が進んだ
+add : 1,2 | (5) | ~P | (4)(2)MPP        # 自動で証明が進みすぎた
 Success
 
 $ del
