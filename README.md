@@ -43,7 +43,6 @@ $
 
 ```
 kotatsugame $ g++ a.cpp -std=c++11
-
 kotatsugame $ ./a.out
 WELCOME!
 operation list:
