@@ -22,7 +22,7 @@ struct formula{
 		}
 		else if(node==AND||node==OR||node==COND)
 		{
-			return l->eq(rhs->l)&&r->eq(rhs->r)&&node==rhs->node;
+			return l->eq(rhs->l)&&r->eq(rhs->r);
 		}
 		else return true;
 	}
