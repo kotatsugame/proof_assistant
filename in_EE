@@ -1,0 +1,17 @@
+A
+(A_x.(Fx->Gx))
+A
+(E_x.~Gx)
+UE
+1
+a
+EE
+2
+(E_x.~Fx)
+a
+EI
+5
+a
+x
+QED
+# Proof of (A_x.(Fx->Gx)), (E_x.~Gx) |- (E_x.~Fx)

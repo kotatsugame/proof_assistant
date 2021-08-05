@@ -6,78 +6,152 @@
 #include<cctype>
 using namespace std;
 const string NOT="~",AND="&",OR="|",COND="->";
-enum RULE{A,MPP,MTT,DN,CP,AI,AE,OI,OE,RAA};
+const string FORALL="A_",EXISTS="E_";
+enum RULE{A,MPP,MTT,DN,CP,AI,AE,OI,OE,RAA,UI,UE,EI,EE,flip};
 struct formula{
 	const formula *l,*r;
 	string node;
-	formula():l(nullptr),r(nullptr),node("undefined"){}
+	formula():l(nullptr),r(nullptr),node("__undefined__"){}
 	formula(const string s):l(nullptr),r(nullptr),node(s){}
 	formula(const formula*l,const formula*r,const string s):l(l),r(r),node(s){}
 	bool eq(const formula*rhs)const
 	{
 		if(node!=rhs->node)return false;
-		if(node==NOT)
+		if(l!=nullptr)
 		{
-			return r->eq(rhs->r);
+			if(rhs->l==nullptr||!l->eq(rhs->l))return false;
 		}
-		else if(node==AND||node==OR||node==COND)
+		else if(rhs->l!=nullptr)return false;
+		if(r!=nullptr)
 		{
-			return l->eq(rhs->l)&&r->eq(rhs->r);
+			if(rhs->r==nullptr||!r->eq(rhs->r))return false;
 		}
-		else return true;
+		else if(rhs->r!=nullptr)return false;
+		return true;
 	}
 	string to_s()const
 	{
-		if(node==NOT)
+		if(l==nullptr)
 		{
-			return node+r->to_s();
+			if(r==nullptr)return node;
+			else return node+r->to_s();
 		}
-		else if(node==AND||node==OR||node==COND)
+		else if(node==FORALL||node==EXISTS)
+		{
+			return "("+node+l->to_s()+"."+r->to_s()+")";
+		}
+		else//if(node==AND||node==OR||node==COND)
 		{
 			return "("+l->to_s()+node+r->to_s()+")";
 		}
-		else return node;
 	}
 };
 const formula*ERROR=new formula();
 
 /*
- * formula	:= val | NOT formula | "(" formula [AND, OR, COND] formula ")"
+ * formula	:= pred | pred term | NOT formula | "(" formula [AND, OR, COND] formula ")" | "(" [FORALL, EXISTS] term "." formula ")"
  * NOT		:= "~"
  * AND		:= "&"
  * OR		:= "|"
  * COND		:= "->"
- * val		:= [A-Za-z]*
+ * FORALL	:= "A_"
+ * EXISTS	:= "E_"
+ * pred		:= [A-Z]+
+ * term		:= [a-z]+
  */
+bool isterm(const formula*siki)
+{
+	if(siki==nullptr||siki==ERROR)return false;
+	for(char c:siki->node)if(!islower(c))return false;
+	return siki->l==nullptr&&siki->r==nullptr;
+}
+bool ispred(const formula*siki)
+{
+	if(siki==nullptr||siki==ERROR)return false;
+	for(char c:siki->node)if(!isupper(c))return false;
+	return siki->l==nullptr&&(siki->r==nullptr||isterm(siki->r));
+}
+bool has_term(const formula*siki,const string&term)
+{
+	if(siki==nullptr)return false;
+	return siki->node==term||has_term(siki->l,term)||has_term(siki->r,term);
+}
 const formula*meidai(int&id,const string&s)
 {
 	if(s[id]=='(')
 	{
 		id++;
-		const formula*l=meidai(id,s);
-		if(l==ERROR)return ERROR;
-		string node="";
-		for(const string&sym:{AND,OR,COND})
-		{
-			if(s.substr(id,sym.size())==sym)
+		{//FORALL, EXISTS
+			string node="";
+			for(const string&sym:{FORALL,EXISTS})
 			{
-				node=sym;
-				id+=sym.size();
-				break;
+				if(s.substr(id,sym.size())==sym)
+				{
+					node=sym;
+					id+=sym.size();
+					break;
+				}
+			}
+			if(node!="")
+			{
+				const formula*l=meidai(id,s);
+				if(l==ERROR||!isterm(l))return ERROR;
+				if(s[id]!='.')return ERROR;
+				id++;
+				const formula*r=meidai(id,s);
+				if(r==ERROR||!has_term(r,l->node))return ERROR;
+				if(s[id]!=')')return ERROR;
+				id++;
+				const formula*now=new formula(l,r,node);
+				return now;
 			}
 		}
-		if(node=="")return ERROR;
-		const formula*r=meidai(id,s);
-		if(r==ERROR)return ERROR;
-		if(s[id]!=')')return ERROR;
-		id++;
-		const formula*now=new formula(l,r,node);
-		return now;
+		{//AND, OR, COND
+			const formula*l=meidai(id,s);
+			if(l==ERROR)return ERROR;
+			string node="";
+			for(const string&sym:{AND,OR,COND})
+			{
+				if(s.substr(id,sym.size())==sym)
+				{
+					node=sym;
+					id+=sym.size();
+					break;
+				}
+			}
+			if(node!="")
+			{
+				const formula*r=meidai(id,s);
+				if(r==ERROR)return ERROR;
+				if(s[id]!=')')return ERROR;
+				id++;
+				const formula*now=new formula(l,r,node);
+				return now;
+			}
+		}
+		return ERROR;
 	}
-	else if(isalpha(s[id]))
+	else if(isupper(s[id]))
 	{
 		string node="";
-		while(isalpha(s[id]))node+=s[id++];
+		while(isupper(s[id]))node+=s[id++];
+		if(id<s.size()&&islower(s[id]))
+		{
+			const formula*r=meidai(id,s);
+			if(r==ERROR||!isterm(r))return ERROR;
+			const formula*now=new formula(nullptr,r,node);
+			return now;
+		}
+		else
+		{
+			const formula*now=new formula(node);
+			return now;
+		}
+	}
+	else if(islower(s[id]))
+	{
+		string node="";
+		while(islower(s[id]))node+=s[id++];
 		const formula*now=new formula(node);
 		return now;
 	}
@@ -91,11 +165,52 @@ const formula*meidai(int&id,const string&s)
 	}
 	else return ERROR;
 }
+pair<set<string>,bool>term_check(const formula*siki)
+{
+	if(siki==nullptr)
+	{
+		return make_pair(set<string>(),true);
+	}
+	pair<set<string>,bool>l=term_check(siki->l);
+	pair<set<string>,bool>r=term_check(siki->r);
+	if(!l.second||!r.second)return make_pair(set<string>(),false);
+	set<string>now=l.first;
+	for(string s:r.first)
+	{
+		if(!now.insert(s).second)return make_pair(set<string>(),false);
+	}
+	if(siki->node==FORALL||siki->node==EXISTS)
+	{
+		string name=siki->l->node;
+		if(!now.insert(name).second)return make_pair(set<string>(),false);
+	}
+	return make_pair(now,true);
+}
 const formula*meidai(const string&s)
 {
 	int id=0;
 	const formula*ret=meidai(id,s);
-	if(id!=s.size())return ERROR;
+	if(id!=s.size()||ret==ERROR)
+	{
+		cout<<"[ERROR LOG] failed to parsing "<<s<<endl;
+		return ERROR;
+	}
+	if(!term_check(ret).second)
+	{
+		cout<<"[ERROR LOG] invalid term name "<<s<<endl;
+		return ERROR;
+	}
+	return ret;
+}
+
+const formula*rewrite(const formula*siki,const string&from,const string&to)
+{
+	if(siki==nullptr)return nullptr;
+	string node=siki->node;
+	if(isterm(siki)&&node==from)node=to;
+	const formula*l=rewrite(siki->l,from,to);
+	const formula*r=rewrite(siki->r,from,to);
+	const formula*ret=new formula(l,r,node);
 	return ret;
 }
 
@@ -136,6 +251,21 @@ struct rule{
 				break;
 			case RAA:
 				cout<<"("<<lhs+1<<")("<<rhs+1<<")RAA";
+				break;
+			case UI:
+				cout<<"("<<lhs+1<<")UI";
+				break;
+			case UE:
+				cout<<"("<<lhs+1<<")UE";
+				break;
+			case EI:
+				cout<<"("<<lhs+1<<")EI";
+				break;
+			case EE:
+				cout<<"("<<x+1<<")("<<y+1<<")("<<z+1<<")EE";
+				break;
+			case flip:
+				cout<<"("<<lhs+1<<")flip";
 				break;
 			default:
 				cout<<"undefined";
@@ -263,6 +393,21 @@ bool add(const set<int>s,const formula*siki,const rule kisoku)
 					}
 				}
 				break;
+			case EE:
+				if(context.back().second.first->eq(siki))
+				{
+					int lhs=context.back().first.second[0];
+					int rhs=context.back().first.second[1];
+					set<int>now=s;
+					if(now.find(rhs)!=now.end())
+					{
+						now.erase(rhs);
+						context.pop_back();
+						for(int depend:syoumei[lhs].izon)now.insert(depend);
+						add(now,siki,{EE,-1,-1,lhs,rhs,num});
+					}
+				}
+				break;
 		}
 	}
 	for(int id=0;id<syoumei.size();id++)
@@ -371,6 +516,54 @@ bool add_OI(const string&s,int id)
 	return add_OI(siki,id);
 }
 
+bool add_UI(int id,const string&from,const string&to)
+{
+	const formula*r=rewrite(syoumei[id].siki,from,to);
+	const formula*l=new formula(to);
+	const formula*now=new formula(l,r,FORALL);
+	return add(syoumei[id].izon,now,{UI,id});
+}
+bool add_UE(int id,const string&to)
+{
+	if(syoumei[id].siki->node!=FORALL)return false;
+	const formula*now=rewrite(syoumei[id].siki->r,syoumei[id].siki->l->node,to);
+	return add(syoumei[id].izon,now,{UE,id});
+}
+bool add_EI(int id,const string&from,const string&to)
+{
+	const formula*l=new formula(to);
+	const formula*r=rewrite(syoumei[id].siki,from,to);
+	const formula*now=new formula(l,r,EXISTS);
+	return add(syoumei[id].izon,now,{EI,id});
+}
+
+bool add_flip_FORALL(int id,const formula*siki)
+{
+	if(siki->node!=FORALL)return false;
+	const formula*r=new formula(nullptr,siki->r,NOT);
+	const formula*now=new formula(siki->l,r,EXISTS);
+	return add(syoumei[id].izon,now,{flip,id});
+}
+bool add_flip_EXISTS(int id,const formula*siki)
+{
+	if(siki->node!=EXISTS)return false;
+	const formula*r=new formula(nullptr,siki->r,NOT);
+	const formula*now=new formula(siki->l,r,FORALL);
+	return add(syoumei[id].izon,now,{flip,id});
+}
+bool add_flip(int id,const formula*siki)
+{
+	if(siki->node==FORALL)
+	{
+		return add_flip_FORALL(id,siki);
+	}
+	else if(siki->node==EXISTS)
+	{
+		return add_flip_EXISTS(id,siki);
+	}
+	return false;
+}
+
 void prompt()
 {
 	cout<<endl;
@@ -390,6 +583,9 @@ void prompt()
 				break;
 			case RAA:
 				cout<<"RAA : "<<context[id].second.first->to_s();
+				break;
+			case EE:
+				cout<<"EE : "<<context[id].second.first->to_s();
 				break;
 		}
 		cout<<"]";
@@ -418,6 +614,11 @@ const string AE_text="AE : AND-Elimination, (A"+AND+"B)"+COND+"A or (A"+AND+"B)"
 const string OI_text="OI : OR-Introduction, A"+COND+"(A"+OR+"B) or B"+COND+"(A"+OR+"B)";
 const string OE_text="OE : OR-Elimination, ((A"+OR+"B), A|-C, B|-C)"+COND+"C";
 const string RAA_text="RAA : Reductio ad Absurdum, (A|-(B"+AND+NOT+"B))"+COND+NOT+"A";
+const string UI_text="UI : Universal-Instroduction, Fa"+COND+"("+FORALL+"x.Fx)";
+const string UE_text="UE : Universal-Elimination, ("+FORALL+"x.Fx)"+COND+"Fa";
+const string EI_text="EI : Existential-Instroduction, Fa"+COND+"("+EXISTS+"x.Fx)";
+const string EE_text="EE : Existential-Elimination, (("+EXISTS+"x.Fx), Fa|-A)"+COND+"A";
+const string flip_text="flip : flip Universal and Existential, "+NOT+"("+FORALL+"x.Fx)"+COND+"("+EXISTS+"x."+NOT+"Fx) or "+NOT+"("+EXISTS+"x.Fx)"+COND+"("+FORALL+"x."+NOT+"Fx)";
 const string del_text="del : delete the last formula [danger : DO NOT consider context]";
 const string QED_text="QED : terminate this program and make proof of the last formula";
 void op_help()
@@ -433,6 +634,11 @@ void op_help()
 		<<OI_text<<endl
 		<<OE_text<<endl
 		<<RAA_text<<endl
+		<<UI_text<<endl
+		<<UE_text<<endl
+		<<EI_text<<endl
+		<<EE_text<<endl
+		<<flip_text<<endl
 		<<del_text<<endl
 		<<QED_text<<endl
 		<<"help : show this message and now status"<<endl;
@@ -457,6 +663,16 @@ int main()
 			disp_all();
 			cout<<endl;
 			success=true;
+		}
+		else if(op=="flip")
+		{
+			cout<<flip_text<<endl;
+			cout<<"Enter target line number $ ";
+			int id=input_num()-1;
+			if(disp(id)&&syoumei[id].siki->node==NOT)
+			{
+				success=add_flip(id,syoumei[id].siki->r);
+			}
 		}
 		else if(op=="del")
 		{
@@ -592,7 +808,7 @@ int main()
 		else if(op=="OE")
 		{
 			cout<<OE_text<<endl;
-			cout<<"Enter A"+OR+"B line number $ ";
+			cout<<"Enter (A"+OR+"B) line number $ ";
 			int id=input_num()-1;
 			if(disp(id)&&syoumei[id].siki->node==OR)
 			{
@@ -601,7 +817,7 @@ int main()
 				const formula*Cf=meidai(Cs);
 				if(Cf!=ERROR)
 				{
-					cout<<"Let's proof ("<<syoumei[id].siki->to_s()<<COND<<Cf->to_s()<<endl;
+					cout<<"Let's proof ("<<syoumei[id].siki->to_s()<<COND<<Cf->to_s()<<")"<<endl;
 					cout<<"First, let's proof ("<<syoumei[id].siki->l->to_s()<<COND<<Cf->to_s()<<")"<<endl;
 					context.push_back(make_pair(make_pair(OE,vector<int>{syoumei[id].number,(int)syoumei.size()}),make_pair(syoumei[id].siki,Cf)));
 					success=add_A(syoumei[id].siki->l);
@@ -619,6 +835,79 @@ int main()
 				cout<<"Let's proof any contradiction B"+AND+NOT+"B"<<endl;
 				context.push_back(make_pair(make_pair(RAA,vector<int>{(int)syoumei.size()}),make_pair(Af,ERROR)));
 				success=add_A(Af);
+			}
+		}
+		else if(op=="UI")
+		{
+			cout<<UI_text<<endl;
+			cout<<"Enter Fa line number $ ";
+			int id=input_num()-1;
+			cout<<"Enter term a's name $ ";
+			string from=input();
+			if(disp(id)&&has_term(syoumei[id].siki,from))
+			{
+				cout<<"Enter new term name $ ";
+				string to=input();
+				if(!has_term(syoumei[id].siki,to))
+				{
+					success=add_UI(id,from,to);
+				}
+			}
+		}
+		else if(op=="UE")
+		{
+			cout<<UE_text<<endl;
+			cout<<"Enter ("+FORALL+"x.Fx) line number $ ";
+			int id=input_num()-1;
+			if(disp(id)&&syoumei[id].siki->node==FORALL)
+			{
+				cout<<"Enter new term name $ ";
+				string to=input();
+				if(!has_term(syoumei[id].siki,to))
+				{
+					success=add_UE(id,to);
+				}
+			}
+		}
+		else if(op=="EI")
+		{
+			cout<<EI_text<<endl;
+			cout<<"Enter Fa line number $ ";
+			int id=input_num()-1;
+			cout<<"Enter term a's name $ ";
+			string from=input();
+			if(disp(id)&&has_term(syoumei[id].siki,from))
+			{
+				cout<<"Enter new term name $ ";
+				string to=input();
+				if(!has_term(syoumei[id].siki,to))
+				{
+					success=add_EI(id,from,to);
+				}
+			}
+		}
+		else if(op=="EE")
+		{
+			cout<<EE_text<<endl;
+			cout<<"Enter ("+EXISTS+"x.Fx) line number $ ";
+			int id=input_num()-1;
+			if(disp(id)&&syoumei[id].siki->node==EXISTS)
+			{
+				cout<<"Enter formula A $ ";
+				string As=input();
+				const formula*Af=meidai(As);
+				if(Af!=ERROR)
+				{
+					cout<<"Enter new term name $ ";
+					string to=input();
+					if(!has_term(syoumei[id].siki,to)&&!has_term(Af,to))
+					{
+						const formula*now=rewrite(syoumei[id].siki->r,syoumei[id].siki->l->node,to);
+						cout<<"Let's proof ("<<now->to_s()<<COND<<Af->to_s()<<")"<<endl;
+						context.push_back(make_pair(make_pair(EE,vector<int>{syoumei[id].number,(int)syoumei.size()}),make_pair(Af,ERROR)));
+						success=add_A(now);
+					}
+				}
 			}
 		}
 

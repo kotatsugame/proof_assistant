@@ -13,17 +13,31 @@ g++ code.cpp
 論理式は次のバッカス・ナウア記法に従う。これ以外の論理式を入力するとパースエラーを引き起こす（はず）。
 
 ```
-<論理式> ::= <命題変数> | <not> <論理式> | "(" <論理式> <2項演算子> <論理式> ")"
+<論理式> ::= <述語> | <述語> <変項> | <not> <論理式> | "(" <論理式> <2項演算子> <論理式> ")" | "(" <量化子> <変項> "." <論理式> ")"
 <2項演算子> ::= <and> | <or> | <ならば>
 <not> ::= "~"
 <and> ::= "&"
 <or> ::= "|"
 <ならば> ::= "->"
-<命題変数> ::= <アルファベット> | <アルファベット> <命題変数>
-<アルファベット> ::= "a" | "b" | ... | "z" | "A" | "B" | ... | "Z"
+<量化子> ::= <forall> | <exists>
+<forall> ::= "A_"
+<exists> ::= "E_"
+<述語> ::= <大文字> | <大文字> <述語>
+<変項> ::= <小文字> | <小文字> <変項>
+<大文字> ::= "A" | "B" | ... | "Z"
+<小文字> ::= "a" | "b" | ... | "z"
 ```
 
+:::note
+量化子を指定する際、束縛される変項が対象の論理式中に現れないようなものはエラーになる。
+また、同じ変項を複数の量化子に束縛した場合もエラーになる。
+:::
+
 認識されるコマンドについては起動時に表示される一覧を参照のこと。
+
+:::note warn
+現状、変項が表す範囲は一切チェックしていない。
+:::
 
 ## プロンプトについて
 
@@ -31,7 +45,7 @@ g++ code.cpp
 $ 
 ```
 
-がプロンプトである。この左に`[CP : 論理式]`など書かれている場合があるが、これは`CP`、`OE`、`RAA`によって変更されるもので、現在示そうとしている命題を表示している。右を先頭としたスタックのように読む。
+がプロンプトである。この左に`[CP : 論理式]`など書かれている場合があるが、これは`CP`、`OE`、`RAA`、`EE`によって変更されるもので、現在示そうとしている命題を表示している。右を先頭としたスタックのように読む。
 
 ## 自動で進む証明について
 
@@ -42,7 +56,7 @@ $
 対偶`(P->Q) |- (~Q->~P)`を証明してみる。
 
 ```
-kotatsugame $ g++ a.cpp -std=c++11
+kotatsugame $ g++ code.cpp -std=c++11
 kotatsugame $ ./a.out
 WELCOME!
 operation list:
@@ -56,6 +70,11 @@ AE : AND-Elimination, (A&B)->A or (A&B)->B
 OI : OR-Introduction, A->(A|B) or B->(A|B)
 OE : OR-Elimination, ((A|B), A|-C, B|-C)->C
 RAA : Reductio ad Absurdum, (A|-(B&~B))->~A
+UI : Universal-Instroduction, Fa->(A_x.Fx)
+UE : Universal-Elimination, (A_x.Fx)->Fa
+EI : Existential-Instroduction, Fa->(E_x.Fx)
+EE : Existential-Elimination, ((E_x.Fx), Fa|-A)->A
+flip : flip Universal and Existential, ~(A_x.Fx)->(E_x.~Fx) or ~(E_x.Fx)->(A_x.~Fx)
 del : delete the last formula [danger : DO NOT consider context]
 QED : terminate this program and make proof of the last formula
 help : show this message and now status
@@ -63,6 +82,7 @@ help : show this message and now status
 $ A
 A : Assumption
 Enter any formula $ P->Q                # (P->Q)と括弧をつけなければならない
+[ERROR LOG] failed to parsing P->Q
 Invalid
 
 $ A
@@ -117,6 +137,14 @@ OR-Eliminationのテスト。
 - in_RAA
 
 Reductio ad Absurdumのテスト。
+
+- in_UE
+
+Universal quantifierのテスト。
+
+- in_EE
+
+Existential quantifierのテスト。
 
 - in_depend
 
