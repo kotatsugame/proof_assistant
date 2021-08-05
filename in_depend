@@ -1,12 +1,12 @@
 A
-(A|B)
+(P|Q)
 A
-~A
+~P
 OE
 1
-B
+Q
 RAA
-~B
+~Q
 AI
 3
 2
@@ -20,4 +20,4 @@ DN
 8
 2
 QED
-# Proof of (A|B), ~A |- B
+# Proof of (P|Q), ~P |- Q
