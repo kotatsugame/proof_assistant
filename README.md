@@ -142,6 +142,10 @@ Universal quantifierのテスト。
 
 Existential quantifierのテスト。
 
+- in_EE_RAA
+
+EEとRAAが入れ子になっているテスト。
+
 - in_depend
 
 依存行のチェックが上手くいっていることのテスト。`AI 5 4`→`AE 6 l`の操作は論理式を変えず、依存行を増やしている。
